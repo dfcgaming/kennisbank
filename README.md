@@ -1,1 +1,29 @@
-# kennisbank
+# Kennisbank
+
+Laravel 13 on PHP 8.4 with PostgreSQL 17, Redis 7.4, and an optional Cloudflare Tunnel.
+
+## Run with Docker Compose
+
+1. Copy `.env.example` to `.env`.
+2. Set `APP_KEY` to `base64:` followed by the output of `openssl rand -base64 32`. Set `DB_PASSWORD` and `REDIS_PASSWORD` to separate random values, for example from two runs of `openssl rand -hex 32`.
+3. Run `docker compose up -d --build`. The app runs its migrations on startup.
+4. Open [localhost:8000](http://localhost:8000), or check [the health endpoint](http://localhost:8000/up).
+
+The app binds to the host's loopback interface. Use `APP_PORT` to change the port, and update `APP_URL` to match. Compose places PostgreSQL and Redis on an internal network and publishes neither port. Named volumes persist database data, Redis data, and Laravel application storage. Keep the same `APP_KEY` between deployments.
+
+## Cloudflare Tunnel
+
+Create a remotely managed tunnel and add a published application route with hostname `app.example.com` and origin `http://app:80`. Use the tunnel's connector token in the stack environment:
+
+```dotenv
+COMPOSE_PROFILES=cloudflare
+CLOUDFLARE_TUNNEL_TOKEN=
+APP_URL=https://app.example.com
+SESSION_SECURE_COOKIE=true
+```
+
+Fill in the token, then run `docker compose up -d --build` again. Check the connector with `docker compose logs cloudflared` and open [app.example.com](https://app.example.com). Cloudflare connects to the app on the Compose network, so the route uses container port 80 even when the loopback port differs.
+
+## Deploy with Dokploy
+
+Create a Git-backed **Docker Compose** service and set the Compose path to `docker-compose.yml`. Set the values above in the service's **Environment** tab, including the required app key and passwords. If using Cloudflare, add the profile and connector token there, then deploy. If Dokploy's host already uses port 8000, choose a free loopback port with `APP_PORT`.
