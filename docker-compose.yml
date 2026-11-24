@@ -1,4 +1,94 @@
 services:
+  setup:
+    image: alpine:3.22
+    network_mode: none
+    restart: "no"
+    environment:
+      APP_KEY: ${APP_KEY:-}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - app_credentials:/credentials/app
+      - postgres_credentials:/credentials/postgres
+      - redis_credentials:/credentials/redis
+      - postgres_data:/existing-postgres:ro
+    command:
+      - /bin/sh
+      - -eu
+      - -c
+      - |
+        umask 077
+        credentials=/credentials/app/runtime.env
+
+        choose_credential() {
+          name="$$1"
+          supplied="$$2"
+          prefix="$$3"
+
+          if [ -f "$$credentials" ]; then
+            saved="$$(sed -n "s/^$$name=//p" "$$credentials")"
+            if [ -z "$$saved" ]; then
+              printf '%s is missing from the saved environment file.\n' "$$name" >&2
+              return 1
+            fi
+            if [ -n "$$supplied" ] && [ "$$supplied" != "$$saved" ]; then
+              printf '%s differs from the saved credential. Use the existing value.\n' "$$name" >&2
+              return 1
+            fi
+            printf '%s' "$$saved"
+            return 0
+          fi
+
+          if [ -z "$$supplied" ]; then
+            random="$$(head -c 32 /dev/urandom | base64)"
+            if [ "$${#random}" -ne 44 ]; then
+              printf 'Could not generate %s.\n' "$$name" >&2
+              return 1
+            fi
+            supplied="$$prefix$$random"
+          fi
+          if [ "$$supplied" != "$$(printf '%s' "$$supplied" | tr -d '\r\n')" ]; then
+            printf '%s must be a single-line value.\n' "$$name" >&2
+            return 1
+          fi
+          printf '%s' "$$supplied"
+        }
+
+        save_file() {
+          file="$$1"
+          mode="$$2"
+          tmp="$$(mktemp "$$file.XXXXXX")"
+          cat > "$$tmp"
+          chmod "$$mode" "$$tmp"
+          mv "$$tmp" "$$file"
+        }
+
+        if [ ! -f "$$credentials" ] && [ -s /existing-postgres/PG_VERSION ]; then
+          if [ -z "$$DB_PASSWORD" ]; then
+            printf '%s\n' 'Set the existing DB_PASSWORD for this PostgreSQL volume during the upgrade.' >&2
+            exit 1
+          fi
+          if [ -z "$$APP_KEY" ]; then
+            printf '%s\n' 'Set the existing APP_KEY for this deployment during the upgrade.' >&2
+            exit 1
+          fi
+        fi
+
+        app_key="$$(choose_credential APP_KEY "$$APP_KEY" base64:)"
+        db_password="$$(choose_credential DB_PASSWORD "$$DB_PASSWORD" '')"
+        redis_password="$$(choose_credential REDIS_PASSWORD "$$REDIS_PASSWORD" '')"
+
+        if [ ! -f "$$credentials" ]; then
+          printf 'APP_KEY=%s\nDB_PASSWORD=%s\nREDIS_PASSWORD=%s\n' "$$app_key" "$$db_password" "$$redis_password" |
+            save_file "$$credentials" 0400
+        fi
+
+        printf '%s' "$$db_password" | save_file /credentials/postgres/password 0444
+        printf '%s' "$$redis_password" | save_file /credentials/redis/password 0444
+        redis_hash="$$(printf '%s' "$$redis_password" | sha256sum)"
+        printf 'appendonly yes\ndir /data\nuser default on resetpass #%s ~* &* +@all\n' "$${redis_hash%% *}" |
+          save_file /credentials/redis/redis.conf 0444
+
   app:
     build: .
     restart: unless-stopped
@@ -9,7 +99,7 @@ services:
       APP_NAME: Kennisbank
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_KEY: ${APP_KEY:?Set APP_KEY}
+      APP_CREDENTIALS_FILE: /credentials/app/runtime.env
       APP_URL: ${APP_URL:-http://localhost:8000}
       LOG_CHANNEL: stderr
       DB_CONNECTION: pgsql
@@ -17,16 +107,15 @@ services:
       DB_PORT: "5432"
       DB_DATABASE: ${DB_DATABASE:-kennisbank}
       DB_USERNAME: ${DB_USERNAME:-kennisbank}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
       CACHE_STORE: redis
       SESSION_DRIVER: redis
       SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
       QUEUE_CONNECTION: sync
     volumes:
       - app_data:/app/storage/app
+      - app_credentials:/credentials/app:ro
     networks:
       - default
       - backend
@@ -45,12 +134,16 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    depends_on:
+      setup:
+        condition: service_completed_successfully
     environment:
       POSTGRES_DB: ${DB_DATABASE:-kennisbank}
       POSTGRES_USER: ${DB_USERNAME:-kennisbank}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /credentials/postgres/password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - postgres_credentials:/credentials/postgres:ro
     networks:
       - backend
     healthcheck:
@@ -62,15 +155,17 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD}"]
-    environment:
-      REDISCLI_AUTH: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    command: ["redis-server", "/credentials/redis/redis.conf"]
     volumes:
       - redis_data:/data
+      - redis_credentials:/credentials/redis:ro
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep -qx PONG"]
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$(cat /credentials/redis/password)" redis-cli ping | grep -qx PONG']
       interval: 5s
       timeout: 3s
       retries: 20
@@ -92,5 +187,8 @@ networks:
 
 volumes:
   app_data:
+  app_credentials:
   postgres_data:
+  postgres_credentials:
   redis_data:
+  redis_credentials:

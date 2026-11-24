@@ -22,4 +22,4 @@ COPY . .
 COPY --from=assets /app/public/build ./public/build
 RUN composer dump-autoload --no-dev --optimize
 
-CMD ["sh", "-ec", "php artisan migrate --force && exec frankenphp php-server --root public --listen :80"]
+CMD ["sh", "/app/docker/start-app.sh"]
