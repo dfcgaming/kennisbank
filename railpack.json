@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "php",
+  "packages": {
+    "php": "8.4",
+    "node": "24"
+  },
+  "steps": {
+    "extensions": {
+      "commands": ["...", "install-php-extensions pdo_pgsql redis zip"]
+    },
+    "install:composer": {
+      "variables": {
+        "COMPOSER_NO_DEV": "1"
+      }
+    },
+    "build": {
+      "commands": ["...", "php artisan config:clear"]
+    }
+  },
+  "deploy": {
+    "variables": {
+      "PORT": "80",
+      "DB_CONNECTION": "pgsql",
+      "REDIS_CLIENT": "phpredis",
+      "CACHE_STORE": "redis",
+      "SESSION_DRIVER": "redis",
+      "QUEUE_CONNECTION": "sync"
+    }
+  }
+}

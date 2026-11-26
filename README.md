@@ -32,6 +32,15 @@ Coolify generates and stores the Laravel application key and separate PostgreSQL
 
 The app defaults to the URL supplied by Coolify. For an HTTPS custom domain, set `APP_URL` to the public HTTPS URL and `SESSION_SECURE_COOKIE=true`.
 
+## Deploy with Coolify and Railpack
+
+1. Create a Git-backed application with **Railpack** as its build strategy, `/` as its base directory, and `80` as its exposed container port. Configure the domain and use `/up` for the HTTP health check.
+2. Start private PostgreSQL 17 and Redis 7.4 resources on the same Coolify destination. Add their internal URLs as `DB_URL` and `REDIS_URL` in the application's runtime environment.
+3. Set a persistent runtime `APP_KEY` using `base64:` followed by `openssl rand -base64 32` output. Reuse the existing key when moving a deployment. Set `APP_URL` to the public URL and enable `SESSION_SECURE_COOKIE=true` for HTTPS.
+4. Mount persistent storage at `/app/storage/app`. Restore any existing database or application files before moving traffic. Deploy and verify `/up`.
+
+Railpack builds the Laravel app and Vite assets and runs migrations on startup. Keep the application key and database URLs out of build-time variables.
+
 ## Deploy with Dokploy
 
 Create a Git-backed **Docker Compose** service and set the Compose path to `docker-compose.yml`. Set the values above in the service's **Environment** tab, including the required app key and passwords. If using Cloudflare, add the profile and connector token there, then deploy. If Dokploy's host already uses port 8000, choose a free loopback port with `APP_PORT`.
