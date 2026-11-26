@@ -1,6 +1,14 @@
 # Kennisbank
 
-Laravel 13 on PHP 8.4 with PostgreSQL 17, Redis 7.4, and an optional Cloudflare Tunnel.
+An internal IT inventory and knowledge base built on Laravel 13 and Filament. It runs on PHP 8.4 with PostgreSQL 17, Redis 7.4, and an optional Cloudflare Tunnel.
+
+## Use the panel
+
+Open `/it` after deployment. Create a staff account from the app container or the Coolify Terminal with `php artisan kennisbank:create-staff`. The command prompts for the password without echoing it. People listed in the inventory are equipment assignees. Only IT staff accounts can sign in.
+
+Add laptops, personal equipment, and servers under **Assets**. Edit the type to turn an existing record into a server. Use **People** to view assigned equipment. Use **Documentation** to write an article and link it to one or more assets or people. With no links, it is a global article. The **Documentation** tab on an asset or person can also create or link an article.
+
+Laravel Boost is a development dependency. Run `php artisan boost:install --skills --guidelines` locally to regenerate the agent files.
 
 ## Run with Docker Compose
 

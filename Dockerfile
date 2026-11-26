@@ -1,7 +1,7 @@
 FROM dunglas/frankenphp:1-php8.4 AS php
 WORKDIR /app
 
-RUN install-php-extensions pdo_pgsql redis zip
+RUN install-php-extensions pdo_pgsql redis zip intl
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
@@ -20,6 +20,6 @@ RUN npm run build
 FROM php
 COPY . .
 COPY --from=assets /app/public/build ./public/build
-RUN composer dump-autoload --no-dev --optimize
+RUN composer dump-autoload --no-dev --optimize && php artisan filament:assets --no-interaction
 
 CMD ["sh", "-ec", "php artisan migrate --force && exec frankenphp php-server --root public --listen :80"]

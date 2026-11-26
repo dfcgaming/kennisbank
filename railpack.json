@@ -9,7 +9,7 @@
       "commands": ["...", "rm -f /app/public/index.php"]
     },
     "extensions": {
-      "commands": ["...", "install-php-extensions pdo_pgsql redis zip"]
+      "commands": ["...", "install-php-extensions pdo_pgsql redis zip intl"]
     },
     "install:composer": {
       "variables": {
@@ -21,6 +21,7 @@
         "...",
         { "src": "public/index.php", "dest": "/app/public/index.php" },
         "grep -Fq LARAVEL_START /app/public/index.php",
+        "php artisan filament:assets --no-interaction",
         "php artisan config:clear"
       ]
     }
@@ -28,6 +29,7 @@
   "deploy": {
     "variables": {
       "PORT": "80",
+      "APP_NAME": "Kennisbank",
       "DB_CONNECTION": "pgsql",
       "REDIS_CLIENT": "phpredis",
       "CACHE_STORE": "redis",
