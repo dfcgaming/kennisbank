@@ -46,10 +46,6 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    'test_url' => env('TEST_APP_URL'),
-
-    'production_url' => env('PRODUCTION_APP_URL', 'https://kennisbank.sitenomads.nl'),
-
     'timezone' => 'UTC',
 
     'locale' => env('APP_LOCALE', 'en'),
