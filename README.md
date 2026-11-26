@@ -4,9 +4,7 @@ An internal IT inventory and knowledge base built on Laravel 13 and Filament. It
 
 ## Test and production environments
 
-Keep the test deployment separate from production, with its own Coolify application and PostgreSQL and Redis resources. Configure each deployment with its own resource URLs under the same variable names: `DB_URL` and `REDIS_URL`. Set `APP_ENV=test` on the test deployment and `APP_ENV=production` on production. The app connects to the database and Redis URLs configured for that deployment; no `TEST_DB_URL` or `TEST_REDIS_URL` variables are needed.
-
-Set `TEST_APP_URL` on the production app to the test app URL. The topbar switch is centered beside Filament's global search and links to the two deployments. If `TEST_APP_URL` is missing, the Test link is disabled. The test app links back to production using `PRODUCTION_APP_URL`, which defaults to `https://kennisbank.sitenomads.nl`.
+Keep the test deployment separate from production, with its own Coolify application and PostgreSQL and Redis resources. Configure each deployment with its own resource URLs under the same variable names: `DB_URL` and `REDIS_URL`. Set `APP_ENV=test` on the test deployment and `APP_ENV=production` on production; use that setting to choose the environment. The app connects to the database and Redis URLs configured for that deployment; no `TEST_DB_URL` or `TEST_REDIS_URL` variables are needed.
 
 Only `APP_ENV=test` creates synthetic records in that deployment's database. Production uses its own database and never runs the test seeder.
 
