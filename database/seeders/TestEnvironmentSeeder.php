@@ -86,15 +86,26 @@ class TestEnvironmentSeeder extends Seeder
     /** @param callable(int): array<string, mixed> $makeRecord */
     private function fill(string $table, int $total, callable $makeRecord, string $uniqueColumn, string $prefix): void
     {
-        $existing = DB::table($table)->where($uniqueColumn, 'like', $prefix)->count();
-        $start = $existing + 1;
+        $existing = array_fill_keys(
+            DB::table($table)->where($uniqueColumn, 'like', $prefix)->pluck($uniqueColumn)->all(),
+            true,
+        );
 
-        for ($offset = $start; $offset <= $total; $offset += 500) {
-            $last = min($total, $offset + 499);
-            $rows = [];
-            for ($number = $offset; $number <= $last; $number++) {
-                $rows[] = $makeRecord($number);
+        $rows = [];
+        for ($number = 1; $number <= $total; $number++) {
+            $record = $makeRecord($number);
+            if (isset($existing[$record[$uniqueColumn]])) {
+                continue;
             }
+
+            $rows[] = $record;
+            if (count($rows) === 500) {
+                DB::table($table)->insertOrIgnore($rows);
+                $rows = [];
+            }
+        }
+
+        if ($rows !== []) {
             DB::table($table)->insertOrIgnore($rows);
         }
     }
