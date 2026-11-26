@@ -19,11 +19,6 @@ return [
 
     'default' => env('DB_CONNECTION', 'sqlite'),
 
-    'production_url' => env('DB_URL'),
-    'test_url' => env('TEST_DB_URL'),
-    'production_redis_url' => env('REDIS_URL'),
-    'test_redis_url' => env('TEST_REDIS_URL'),
-
     /*
     |--------------------------------------------------------------------------
     | Database Connections
@@ -91,7 +86,7 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('APP_ENV') === 'test' ? env('TEST_DB_URL') : env('DB_URL'),
+            'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
@@ -159,7 +154,7 @@ return [
         ],
 
         'default' => [
-            'url' => env('APP_ENV') === 'test' ? env('TEST_REDIS_URL') : env('REDIS_URL'),
+            'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
