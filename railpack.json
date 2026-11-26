@@ -5,6 +5,9 @@
     "node": "24"
   },
   "steps": {
+    "prepare": {
+      "commands": ["...", "rm -f /app/public/index.php"]
+    },
     "extensions": {
       "commands": ["...", "install-php-extensions pdo_pgsql redis zip"]
     },
@@ -14,7 +17,12 @@
       }
     },
     "build": {
-      "commands": ["...", "php artisan config:clear"]
+      "commands": [
+        "...",
+        { "src": "public/index.php", "dest": "/app/public/index.php" },
+        "grep -Fq LARAVEL_START /app/public/index.php",
+        "php artisan config:clear"
+      ]
     }
   },
   "deploy": {
