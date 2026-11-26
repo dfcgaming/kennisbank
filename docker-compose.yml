@@ -4,23 +4,27 @@ services:
     restart: unless-stopped
     init: true
     ports:
-      - "127.0.0.1:${APP_PORT:-8000}:80"
+      - "127.0.0.1:${APP_PORT:-0}:80"
     environment:
+      # Register these defaults with Coolify's Compose parser.
+      SERVICE_REALBASE64_32_APPKEY: ${SERVICE_REALBASE64_32_APPKEY}
+      SERVICE_PASSWORD_64_DBPASSWORD: ${SERVICE_PASSWORD_64_DBPASSWORD}
+      SERVICE_PASSWORD_64_REDISPASSWORD: ${SERVICE_PASSWORD_64_REDISPASSWORD}
       APP_NAME: Kennisbank
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_KEY: ${APP_KEY:?Set APP_KEY}
-      APP_URL: ${APP_URL:-http://localhost:8000}
+      APP_KEY: ${APP_KEY:-base64:${SERVICE_REALBASE64_32_APPKEY:?Set APP_KEY}}
+      APP_URL: ${APP_URL:-${COOLIFY_URL:-http://localhost:8000}}
       LOG_CHANNEL: stderr
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_DATABASE: ${DB_DATABASE:-kennisbank}
       DB_USERNAME: ${DB_USERNAME:-kennisbank}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DB_PASSWORD: ${DB_PASSWORD:-${SERVICE_PASSWORD_64_DBPASSWORD:?Set DB_PASSWORD}}
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-${SERVICE_PASSWORD_64_REDISPASSWORD:?Set REDIS_PASSWORD}}
       CACHE_STORE: redis
       SESSION_DRIVER: redis
       SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
@@ -48,7 +52,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_DATABASE:-kennisbank}
       POSTGRES_USER: ${DB_USERNAME:-kennisbank}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-${SERVICE_PASSWORD_64_DBPASSWORD:?Set DB_PASSWORD}}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -62,9 +66,9 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD}"]
+    command: ["sh", "-ec", 'exec redis-server --appendonly yes --requirepass "$$REDISCLI_AUTH"']
     environment:
-      REDISCLI_AUTH: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:-${SERVICE_PASSWORD_64_REDISPASSWORD:?Set REDIS_PASSWORD}}
     volumes:
       - redis_data:/data
     networks:

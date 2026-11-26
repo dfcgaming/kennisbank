@@ -24,6 +24,14 @@ SESSION_SECURE_COOKIE=true
 
 Fill in the token, then run `docker compose up -d --build` again. Check the connector with `docker compose logs cloudflared` and open [app.example.com](https://app.example.com). Cloudflare connects to the app on the Compose network, so the route uses container port 80 even when the loopback port differs.
 
+## Deploy with Coolify
+
+Create a Git-backed **Docker Compose** application and select `docker-compose.yml`. Assign your domain to the `app` service on container port `80`. Leave `APP_PORT` unset so Docker chooses a free loopback port while Coolify routes traffic to the container.
+
+Coolify generates and stores the Laravel application key and separate PostgreSQL and Redis passwords. For an existing installation, keep its `APP_KEY`, `DB_PASSWORD`, and `REDIS_PASSWORD` in Coolify and enable them for both build and runtime so the stack continues to use those values.
+
+The app defaults to the URL supplied by Coolify. For an HTTPS custom domain, set `APP_URL` to the public HTTPS URL and `SESSION_SECURE_COOKIE=true`.
+
 ## Deploy with Dokploy
 
 Create a Git-backed **Docker Compose** service and set the Compose path to `docker-compose.yml`. Set the values above in the service's **Environment** tab, including the required app key and passwords. If using Cloudflare, add the profile and connector token there, then deploy. If Dokploy's host already uses port 8000, choose a free loopback port with `APP_PORT`.
